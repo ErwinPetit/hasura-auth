@@ -1,3 +1,5 @@
+include ./build/makefiles/go.Makefile
+
 PORT=4000
 TAG=local
 IMAGE=nhost/hasura-auth:$(TAG)
@@ -6,16 +8,12 @@ IMAGE=nhost/hasura-auth:$(TAG)
 
 .PHONY: help
 help: ## Show this help.
-	@IFS=$$'\n' ; \
-	lines=(`fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//'`); \
-	for line in $${lines[@]}; do \
-		IFS=$$'#' ; \
-		split=($$line) ; \
-		command=`echo $${split[0]} | sed -e 's/^ *//' -e 's/ *$$//'` ; \
-		info=`echo $${split[2]} | sed -e 's/^ *//' -e 's/ *$$//'` ; \
-		printf "%-38s %s\n" $${command%:*} $$info ; \
-	done
-
+	@echo
+	@awk 'BEGIN { \
+		FS = "##"; \
+		printf "Usage: make \033[36m<target>\033[0m\n"} \
+		/^[a-zA-Z_-]+%?:.*?##/ { printf "  \033[36m%-38s\033[0m %s\n", $$1, $$2 } ' \
+		$(MAKEFILE_LIST)
 
 .PHONY: get-version
 get-version:  ## Return version.
@@ -50,11 +48,11 @@ watch: check-port install dev-env-up ## Start tests in watch mode.
 
 
 .PHONY: build
-build: 
+build:
 	docker build -t $(IMAGE) .
 
 
-.PHONY: dev-env-down 
+.PHONY: dev-env-down
 dev-env-up: ## Start required services (Hasura, Postgres, Mailhog).
 	docker-compose -f docker-compose.yaml up -d
 	while [[ "$$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8080/healthz)" != "200" ]]; do sleep 1; done
@@ -67,6 +65,5 @@ dev-env-down:  ## Stop required services (Hasura, Posgres, Mailhbg).
 
 
 .PHONY: install
-install: 
+install:
 	pnpm install
-
